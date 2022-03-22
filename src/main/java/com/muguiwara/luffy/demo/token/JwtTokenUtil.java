@@ -17,7 +17,7 @@ import java.util.function.Function;
 @Component
 public class JwtTokenUtil implements Serializable {
     private static final long JWT_VALIDITY_TOKEN = 50 * 60 *60;
-    Key key = Keys.secretKeyFor(SignatureAlgorithm.ES512);
+    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     public Claims getAllClaimsFromToken(String token){
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
