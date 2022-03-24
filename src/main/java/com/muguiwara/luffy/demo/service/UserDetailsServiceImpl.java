@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 @Service
-public class UserDetailsServiceImpl implements UserDetailsService {
+public class UserDetailsServiceImpl implements UserDetailsService, UserService {
 
     private final UserEntityRepository userEntityRepository;
 
@@ -30,5 +30,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Collection<GrantedAuthority> authorities = user.getRoleEntities().stream()
                 .map(authority-> new SimpleGrantedAuthority(authority.getRolename())).collect(Collectors.toList());
         return new User(user.getUsername(), user.getPassword(), authorities);
+    }
+
+    @Override
+    public UserEntity save(UserEntity userEntity) {
+        return this.userEntityRepository.save(userEntity);
     }
 }

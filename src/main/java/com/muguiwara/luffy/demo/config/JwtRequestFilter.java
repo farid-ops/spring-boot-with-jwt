@@ -1,11 +1,7 @@
 package com.muguiwara.luffy.demo.config;
 
-import com.muguiwara.luffy.demo.service.UserDetailsServiceImpl;
 import com.muguiwara.luffy.demo.token.JwtToken;
 import com.muguiwara.luffy.demo.utils.SecurityConst;
-import io.jsonwebtoken.ExpiredJwtException;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,32 +30,25 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
-        String headerContent = request.getHeader(SecurityConst.AUTHORIZATION);
-        if (headerContent.startsWith(SecurityConst.PREFIX)){
-            String token = headerContent.substring(7);
-            try{
-                String username = jwtToken.getUsernameFromToken(token);
-                if (StringUtils.isNotEmpty(username) && SecurityContextHolder.getContext().getAuthentication() == null){
-                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-                    if (jwtToken.validatedToken(token, userDetails)){
-                        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
-                                = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities());
-                        usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
-                    }
-                }
-            }catch (IllegalArgumentException e){
-                logger.info("Unable to fetch JWT token"+e.getStackTrace());
-            }catch (ExpiredJwtException e){
-                logger.info("JWT token is expired"+e.getStackTrace());
-            }catch (Exception e){
-                logger.info(e.getMessage());
-            }
-        }else{
-            logger.warn("JWT Token does not begin with Bearer String");
-        }
-        filterChain.doFilter(request,response);
+
+       final String authorizationHeader = request.getHeader(SecurityConst.AUTHORIZATION);
+       String username = null, jwt = null;
+
+       if (null != authorizationHeader && authorizationHeader.startsWith(SecurityConst.PREFIX)){
+           jwt = authorizationHeader.substring(7);
+           username = this.jwtToken.getUsernameFromToken(jwt);
+       }
+       if (null != username && null == SecurityContextHolder.getContext().getAuthentication()){
+           UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+           UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken= new
+                   UsernamePasswordAuthenticationToken(userDetails.getUsername(), null, userDetails.getAuthorities());
+           usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+           SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+       }
+       filterChain.doFilter(request, response);
     }
 }
