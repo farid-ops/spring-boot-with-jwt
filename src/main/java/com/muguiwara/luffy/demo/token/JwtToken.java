@@ -1,5 +1,6 @@
 package com.muguiwara.luffy.demo.token;
 
+import com.muguiwara.luffy.demo.utils.SecurityConst;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -15,9 +16,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Component
-public class JwtTokenUtil implements Serializable {
-    private static final long JWT_VALIDITY_TOKEN = 50 * 60 *60;
-    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+public class JwtToken implements Serializable {
+
+    public Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     public Claims getAllClaimsFromToken(String token){
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
@@ -45,7 +46,8 @@ public class JwtTokenUtil implements Serializable {
         Map<String, String> claims = new HashMap<>();
         return Jwts.builder().setClaims(claims).setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() * JWT_VALIDITY_TOKEN * 1000)).signWith(key).compact();
+                .setExpiration(new Date(System.currentTimeMillis() * SecurityConst.TOKEN_VALIDITY * 1000))
+                .signWith(key).compact();
     }
 
     public boolean validatedToken(String token, UserDetails userDetails){

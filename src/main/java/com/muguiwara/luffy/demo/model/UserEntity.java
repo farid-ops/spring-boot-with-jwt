@@ -26,7 +26,6 @@ public class UserEntity {
     @Indexed(unique = true)
     private String email;
     @DBRef
-    @JsonIgnore
     private Collection<RoleEntity> roleEntities = new ArrayList<>();
 
     public UserEntity(){

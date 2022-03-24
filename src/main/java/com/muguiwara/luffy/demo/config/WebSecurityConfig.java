@@ -23,18 +23,19 @@ import java.util.Map;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    public final UserDetailsService jwtUserDetailsService;
+
+    public final UserDetailsService userDetailsService;
     private final JwtRequestFilter jwtRequestFilter;
 
-    public WebSecurityConfig(@Qualifier("JWTUserDetailsService") UserDetailsService jwtserDetailsService,
-                             JwtRequestFilter jwtRequestFilter){
-        this.jwtUserDetailsService = jwtserDetailsService;
+    public WebSecurityConfig(@Qualifier("userDetailsServiceImpl") UserDetailsService userDetailsService,
+                             JwtRequestFilter jwtRequestFilter) {
+        this.userDetailsService = userDetailsService;
         this.jwtRequestFilter = jwtRequestFilter;
     }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(jwtUserDetailsService).passwordEncoder(new BCryptPasswordEncoder());
+        auth.userDetailsService(userDetailsService).passwordEncoder(new BCryptPasswordEncoder());
     }
 
     @Bean
@@ -43,19 +44,27 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return super.authenticationManagerBean();
     }
 
+    @Bean
+    public BCryptPasswordEncoder encoder(){
+        return new BCryptPasswordEncoder();
+    }
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable().authorizeRequests().antMatchers("/auth/*").permitAll()
-                .anyRequest().authenticated().and().exceptionHandling().authenticationEntryPoint((request, response, authException) -> {
-                  Map<String, Object> responseMap = new HashMap<>();
-                  ObjectMapper mapper = new ObjectMapper();
-                  response.setStatus(401);
-                  responseMap.put("error", true);
-                  responseMap.put("message", "Unauthorize");
-                  response.setHeader("content-type", "application/json");
-                  String responseMsg = mapper.writeValueAsString(responseMap);
-                  response.getWriter().write(responseMsg);
-        }).and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .addFilterBefore(this.jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+      http.csrf().disable().authorizeRequests().antMatchers("/auth/*")
+              .permitAll().anyRequest().authenticated()
+              .and()
+              .exceptionHandling().authenticationEntryPoint((request, response, authException) -> {
+          Map<String, Object> responseMap = new HashMap<>();
+          ObjectMapper mapper = new ObjectMapper();
+          response.setStatus(401);
+          responseMap.put("error", true);
+          responseMap.put("message", "Unauthorized");
+          response.setHeader("content-type", "application/json");
+          String responseMsg = mapper.writeValueAsString(responseMap);
+          response.getWriter().write(responseMsg);
+      }).and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+              .and().addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+
     }
 }

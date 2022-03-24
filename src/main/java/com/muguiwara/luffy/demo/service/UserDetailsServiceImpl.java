@@ -10,23 +10,25 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 @Service
-public class JWTUserDetailsService implements UserDetailsService {
+public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private UserEntityRepository userEntityRepository;
+    private final UserEntityRepository userEntityRepository;
 
-    public JWTUserDetailsService(UserEntityRepository userEntityRepository){
+    public UserDetailsServiceImpl(UserEntityRepository userEntityRepository) {
         this.userEntityRepository = userEntityRepository;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        UserEntity userEntity = this.userEntityRepository.findUserByUsername(username);
-        Collection<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("USER_ROLE"));
-        return new User(userEntity.getUsername(), userEntity.getPassword(), authorities);
+        UserEntity user = this.userEntityRepository.findByUsername(username);
+        if (null == user)
+            throw new UsernameNotFoundException("User doesn't exist with username "+username);
+        Collection<GrantedAuthority> authorities = user.getRoleEntities().stream()
+                .map(authority-> new SimpleGrantedAuthority(authority.getRolename())).collect(Collectors.toList());
+        return new User(user.getUsername(), user.getPassword(), authorities);
     }
 }
